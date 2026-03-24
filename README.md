@@ -9,6 +9,7 @@ Build guided onboarding tours directly on any Filament page with a point-and-cli
 - **Visual Tour Builder** — slide-over panel accessible from the user menu on any page
 - **Element Picker** — hover-highlight and click to select target elements with smart CSS selector generation
 - **Database-Backed Tours** — tours stored in a `tours` table, managed via a Filament resource
+- **LaunchTourAction** — drop-in Filament action that shows a "Take Tour" button on any page with an active tour
 - **Preview Mode** — preview tours in-place before saving
 - **Modal & Element Steps** — steps can target a specific element or display as centered modals
 - **Reorderable Steps** — drag-and-drop step ordering in both the builder and resource table
@@ -110,6 +111,23 @@ The package registers a `TourPolicy` that gates write operations to `isGlobalAdm
 Override by publishing and modifying the policy, or by binding your own policy to the `Tour` model.
 
 ## Usage
+
+### LaunchTourAction
+
+Add a "Take Tour" button to any Filament page. The action automatically finds the active tour for the current route and dispatches it. It hides itself when no tour exists for the page.
+
+```php
+use Padmission\FilamentTourEditor\Actions\LaunchTourAction;
+
+protected function getHeaderActions(): array
+{
+    return [
+        LaunchTourAction::make(),
+    ];
+}
+```
+
+No configuration needed — it resolves the tour from the current route automatically.
 
 ### Building Tours (Visual Builder)
 
