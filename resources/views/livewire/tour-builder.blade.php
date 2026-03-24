@@ -1,3 +1,87 @@
+@once
+    <style>
+        .driver-popover {
+            min-width: 18rem !important;
+            max-width: 22rem !important;
+            border-radius: 0.875rem !important;
+            border: 1px solid color-mix(in oklab, rgb(15 23 42) 10%, transparent) !important;
+            background: rgb(255 255 255) !important;
+            color: rgb(15 23 42) !important;
+            box-shadow: 0 20px 45px -18px rgb(15 23 42 / 0.35) !important;
+        }
+
+        .dark .driver-popover {
+            border-color: color-mix(in oklab, rgb(255 255 255) 12%, transparent) !important;
+            background: rgb(15 23 42) !important;
+            color: rgb(248 250 252) !important;
+            box-shadow: 0 24px 50px -20px rgb(0 0 0 / 0.65) !important;
+        }
+
+        .driver-popover-title {
+            color: inherit !important;
+        }
+
+        .driver-popover-description {
+            color: color-mix(in oklab, currentColor 78%, transparent) !important;
+        }
+
+        .driver-popover-close-btn {
+            color: color-mix(in oklab, currentColor 45%, transparent) !important;
+        }
+
+        .driver-popover-close-btn:hover,
+        .driver-popover-close-btn:focus {
+            color: inherit !important;
+        }
+
+        .driver-popover-footer {
+            gap: 0.75rem !important;
+        }
+
+        .driver-popover-footer button {
+            text-shadow: none !important;
+            font-weight: 600 !important;
+            border-radius: 0.75rem !important;
+            padding: 0.625rem 1rem !important;
+            transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease !important;
+        }
+
+        .driver-popover-footer .driver-popover-next-btn {
+            border: 1px solid var(--primary-600) !important;
+            background: var(--primary-600) !important;
+            color: rgb(255 255 255) !important;
+        }
+
+        .driver-popover-footer .driver-popover-next-btn:hover,
+        .driver-popover-footer .driver-popover-next-btn:focus {
+            border-color: var(--primary-500) !important;
+            background: var(--primary-500) !important;
+        }
+
+        .driver-popover-footer .driver-popover-prev-btn {
+            border: 1px solid color-mix(in oklab, rgb(15 23 42) 12%, transparent) !important;
+            background: rgb(255 255 255) !important;
+            color: rgb(15 23 42) !important;
+        }
+
+        .driver-popover-footer .driver-popover-prev-btn:hover,
+        .driver-popover-footer .driver-popover-prev-btn:focus {
+            background: rgb(248 250 252) !important;
+        }
+
+        .dark .driver-popover-footer .driver-popover-prev-btn {
+            border-color: color-mix(in oklab, rgb(255 255 255) 14%, transparent) !important;
+            background: rgb(30 41 59) !important;
+            color: rgb(248 250 252) !important;
+        }
+
+        .dark .driver-popover-footer .driver-popover-prev-btn:hover,
+        .dark .driver-popover-footer .driver-popover-prev-btn:focus {
+            background: rgb(51 65 85) !important;
+        }
+    </style>
+@endonce
+
 <div
     x-data="tourPicker"
     x-on:keydown.escape.window="cancelPicking()"
