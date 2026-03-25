@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
@@ -64,8 +65,29 @@ class TourFormSchema
                         Action::make('pickElement')
                             ->label(fn (Get $get): string => filled($get('element')) ? 'Change target' : 'Pick target')
                             ->icon('heroicon-o-cursor-arrow-rays')
+                            ->extraAttributes(fn (Component $component): array => [
+                                'data-tour-pick-target' => 'true',
+                                'data-tour-pick-index' => (string) $component->getParentRepeaterItemIndex(),
+                                'data-tour-pick-key' => (string) $component->getParentRepeaterItem()?->getStatePath(isAbsolute: false),
+                            ])
                             ->size(Size::Small)
                             ->action($pickElementAction),
+                        Action::make('targetPickedMessage')
+                            ->label('Target selected')
+                            ->link()
+                            ->color('success')
+                            ->disabled()
+                            ->extraAttributes(fn (Component $component): array => [
+                                'x-cloak' => true,
+                                'x-show' => "recentlyPickedItemIndex === {$component->getParentRepeaterItemIndex()}",
+                                'x-transition:enter' => 'transition-opacity duration-300',
+                                'x-transition:enter-start' => 'opacity-0',
+                                'x-transition:enter-end' => 'opacity-100',
+                                'x-transition:leave' => 'transition-opacity duration-700',
+                                'x-transition:leave-start' => 'opacity-100',
+                                'x-transition:leave-end' => 'opacity-0',
+                                'class' => 'pointer-events-none',
+                            ]),
                     ])
                         ->visible($pickElementAction !== null),
                     TextInput::make('title')
@@ -125,6 +147,8 @@ class TourFormSchema
             TextInput::make('route')
                 ->required()
                 ->helperText('The named route or URL path where this tour should appear (e.g., filament.app.pages.dashboard)')
+                ->hidden(fn (LivewireComponent $livewire): bool => ! $livewire->showAdvancedTourFields)
+                ->dehydratedWhenHidden()
                 ->maxLength(255)
                 ->columnSpanFull(),
         ];

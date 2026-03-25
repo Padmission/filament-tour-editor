@@ -54,6 +54,9 @@
 Alpine.data('tourPicker', () => ({
     picking: false,
     pickingItemKey: null,
+    pickingItemIndex: null,
+    recentlyPickedItemIndex: null,
+    recentlyPickedItemTimeout: null,
     hiddenModalId: null,
     previewModalId: null,
     previewStarted: false,
@@ -76,10 +79,32 @@ Alpine.data('tourPicker', () => ({
         $wire.on('filament-tour-editor::start-preview', () => {
             this.startPreview();
         });
+
+    },
+
+    showPickedConfirmation(itemIndex) {
+        this.recentlyPickedItemIndex = itemIndex;
+
+        window.clearTimeout(this.recentlyPickedItemTimeout);
+
+        this.recentlyPickedItemTimeout = window.setTimeout(() => {
+            this.recentlyPickedItemIndex = null;
+            this.recentlyPickedItemTimeout = null;
+        }, 2000);
     },
 
     startPicking(itemKey) {
         this.pickingItemKey = itemKey;
+        const normalizedItemKey = String(itemKey).split('.').pop();
+        const pickButtons = Array.from(document.querySelectorAll('[data-tour-pick-target]'));
+        const activePickButton = pickButtons.find((button) => {
+            return button.dataset.tourPickKey === normalizedItemKey
+                || button.dataset.tourPickKey === String(itemKey);
+        });
+
+        this.pickingItemIndex = activePickButton?.dataset.tourPickIndex !== undefined
+            ? Number(activePickButton.dataset.tourPickIndex)
+            : null;
         this.picking = true;
         this.hiddenModalId = this.getOpenModalId();
 
@@ -227,10 +252,17 @@ Alpine.data('tourPicker', () => ({
 
         const selector = this.generateSelector(el);
         const itemKey = this.pickingItemKey;
+        const itemIndex = this.pickingItemIndex;
 
         this.cancelPicking();
 
         $wire.onElementPicked(selector, itemKey);
+
+        if (itemIndex !== null && itemIndex !== -1) {
+            window.setTimeout(() => {
+                this.showPickedConfirmation(itemIndex);
+            }, 100);
+        }
     },
 
     getOpenModalId() {
