@@ -64,6 +64,7 @@ class TourFormSchema
                     Actions::make([
                         Action::make('pickElement')
                             ->label(fn (Get $get): string => filled($get('element')) ? 'Change target' : 'Pick target')
+                            ->color(fn (Get $get): string => filled($get('element')) ? 'gray' : 'primary')
                             ->icon('heroicon-o-cursor-arrow-rays')
                             ->extraAttributes(fn (Component $component): array => [
                                 'data-tour-pick-target' => 'true',
