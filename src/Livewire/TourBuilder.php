@@ -52,7 +52,6 @@ class TourBuilder extends Component implements HasActions, HasSchemas
         }
 
         $normalizedItemKey = $this->normalizePickedItemKey($itemKey);
-
         data_set(
             $this->mountedActions,
             "{$mountedActionIndex}.data.json_config.steps.{$normalizedItemKey}.element",

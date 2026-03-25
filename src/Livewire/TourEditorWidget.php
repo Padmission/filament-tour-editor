@@ -22,7 +22,7 @@ class TourEditorWidget extends FilamentTourWidget
         $this->loadTraitTours();
         $this->loadDatabaseTours();
 
-        $this->dispatch('filament-tour-editor::loaded-elements-ready',
+        $this->dispatch('filament-tour::loaded-elements',
             only_visible_once: FilamentTourPlugin::get()->getHistoryType() == 'local_storage'
                 && (is_bool(FilamentTourPlugin::get()->isOnlyVisibleOnce())
                     ? FilamentTourPlugin::get()->isOnlyVisibleOnce()
@@ -34,7 +34,7 @@ class TourEditorWidget extends FilamentTourWidget
         $hasCssSelector = is_bool(FilamentTourPlugin::get()->isCssSelectorEnabled())
             ? FilamentTourPlugin::get()->isCssSelectorEnabled()
             : config('filament-tour.enable_css_selector');
-        $this->dispatch('filament-tour-editor::css-selector-status-ready', enabled: $hasCssSelector);
+        $this->dispatch('filament-tour::change-css-selector-status', enabled: $hasCssSelector);
     }
 
     #[On('filament-tour-editor::preview-tour')]
@@ -94,6 +94,6 @@ class TourEditorWidget extends FilamentTourWidget
 
     public function render()
     {
-        return view('filament-tour-editor::livewire.tour-editor-widget');
+        return view('filament-tour::livewire.filament-tour-widget');
     }
 }
