@@ -78,7 +78,7 @@ class Tour extends Model
             'alwaysShow' => $this->json_config['alwaysShow'] ?? false,
             'colors' => [
                 'light' => 'rgb(0,0,0)',
-                'dark' => '#fff',
+                'dark' => 'rgb(90,90,90)',
             ],
             'steps' => json_encode($mappedSteps),
             'nextButtonLabel' => $config['nextButtonLabel'] ?? 'Next',
