@@ -4,6 +4,7 @@ namespace Padmission\FilamentTourEditor;
 
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
+use Padmission\FilamentTourEditor\Commands\GenerateTourMigrationCommand;
 use Padmission\FilamentTourEditor\Livewire\TourBuilder;
 use Padmission\FilamentTourEditor\Livewire\TourEditorWidget;
 use Padmission\FilamentTourEditor\Models\Tour;
@@ -21,6 +22,7 @@ class FilamentTourEditorServiceProvider extends PackageServiceProvider
         $package->name(static::$name)
             ->hasConfigFile(static::$name)
             ->hasViews(static::$viewNamespace)
+            ->hasCommand(GenerateTourMigrationCommand::class)
             ->hasMigration('create_tours_table')
             ->runsMigrations();
     }
