@@ -21,7 +21,7 @@ class TourExporter extends Exporter
             ExportColumn::make('route'),
             ExportColumn::make('json_config')
                 ->label('Configuration (JSON)')
-                ->formatStateUsing(fn ($state): string => is_array($state) ? json_encode($state, JSON_UNESCAPED_SLASHES) : ($state ?? '')),
+                ->state(fn (Tour $record): string => json_encode($record->json_config, JSON_UNESCAPED_SLASHES) ?: '{}'),
             ExportColumn::make('is_active')
                 ->formatStateUsing(fn ($state): string => $state ? 'Yes' : 'No'),
             ExportColumn::make('sort_order'),
