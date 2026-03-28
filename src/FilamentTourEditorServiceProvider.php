@@ -27,7 +27,13 @@ class FilamentTourEditorServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
-        Gate::policy(Tour::class, TourPolicy::class);
+        $this->publishes([
+            __DIR__ . '/Policies/TourPolicy.php' => app_path('Policies/TourPolicy.php'),
+        ], 'filament-tour-editor-policies');
+
+        // Use the app's published policy if available, otherwise fall back to the package default
+        $appPolicy = 'App\\Policies\\TourPolicy';
+        Gate::policy(Tour::class, class_exists($appPolicy) ? $appPolicy : TourPolicy::class);
 
         // Override the base filament-tour widget to inject database tours
         Livewire::component('filament-tour-widget', TourEditorWidget::class);

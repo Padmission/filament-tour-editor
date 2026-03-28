@@ -2,7 +2,12 @@
 
 namespace Padmission\FilamentTourEditor\Resources\TourResource\Pages;
 
+use Filament\Actions\ActionGroup;
+use Filament\Actions\ExportAction;
+use Filament\Actions\ImportAction;
 use Filament\Resources\Pages\ManageRecords;
+use Padmission\FilamentTourEditor\Exports\TourExporter;
+use Padmission\FilamentTourEditor\Imports\TourImporter;
 use Padmission\FilamentTourEditor\Resources\TourResource\TourResource;
 
 class ManageTours extends ManageRecords
@@ -13,6 +18,15 @@ class ManageTours extends ManageRecords
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            ActionGroup::make([
+                ExportAction::make()
+                    ->label('Export Tours')
+                    ->exporter(TourExporter::class),
+                ImportAction::make()
+                    ->label('Import Tours')
+                    ->importer(TourImporter::class),
+            ]),
+        ];
     }
 }

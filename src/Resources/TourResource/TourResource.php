@@ -2,24 +2,18 @@
 
 namespace Padmission\FilamentTourEditor\Resources\TourResource;
 
-use Filament\Actions\ActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\ReplicateAction;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\Width;
-use Filament\Tables\Columns\IconColumn;
-use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Padmission\FilamentTourEditor\FilamentTourEditorPlugin;
 use Padmission\FilamentTourEditor\Models\Tour;
 use Padmission\FilamentTourEditor\Resources\TourResource\Pages\ManageTours;
 use Padmission\FilamentTourEditor\Resources\TourResource\Schemas\TourFormSchema;
+use Padmission\FilamentTourEditor\Resources\TourResource\Schemas\TourTableSchema;
 
 class TourResource extends Resource
 {
@@ -74,69 +68,7 @@ class TourResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                TextColumn::make('name')
-                    ->searchable()
-                    ->sortable(),
-                TextColumn::make('route')
-                    ->state(fn (Tour $record): string => $record->getResolvedRoutePath())
-                    ->url(fn (Tour $record): string => $record->getResolvedRoutePath())
-                    ->openUrlInNewTab(false)
-                    ->searchable()
-                    ->sortable()
-                    ->limit(40),
-                TextColumn::make('steps_count')
-                    ->label('Steps')
-                    ->state(fn (Tour $record): int => count($record->getSteps())),
-                IconColumn::make('is_active')
-                    ->boolean()
-                    ->sortable(),
-                TextColumn::make('created_at')
-                    ->dateTime('m/d/Y')
-                    ->sortable(),
-            ])
-            ->defaultSort('sort_order')
-            ->reorderable('sort_order')
-            ->recordActions([
-                EditAction::make()
-                    ->visible(fn (): bool => static::canManageTours())
-                    ->slideOver()
-                    ->modalDescription('Edit the tour here, then use the Tour Builder on the page itself if you need to pick or change target elements.')
-                    ->modalWidth(Width::TwoExtraLarge)
-                    ->mutateDataUsing(fn (array $data): array => static::normalizeFormData($data)),
-                ActionGroup::make([
-                    ReplicateAction::make()
-                        ->label('Clone')
-                        ->visible(fn (): bool => static::canManageTours())
-                        ->slideOver()
-                        ->modalWidth(Width::TwoExtraLarge)
-                        ->excludeAttributes(['id', 'created_at', 'updated_at', 'sort_order'])
-                        ->schema(TourFormSchema::components())
-                        ->mutateRecordDataUsing(fn (array $data): array => static::prefillCloneData($data))
-                        ->beforeReplicaSaved(function (Tour $replica): void {
-                            $jsonConfig = $replica->json_config ?? [];
-                            data_set($jsonConfig, 'id', Str::slug($replica->name));
-
-                            if (blank(data_get($jsonConfig, 'config'))) {
-                                data_set($jsonConfig, 'config', [
-                                    'nextButtonLabel' => 'Next',
-                                    'previousButtonLabel' => 'Previous',
-                                    'doneButtonLabel' => 'Done',
-                                ]);
-                            }
-
-                            $replica->json_config = $jsonConfig;
-                        }),
-                    DeleteAction::make()
-                        ->visible(fn (): bool => static::canManageTours()),
-                ]),
-            ])
-            ->toolbarActions([
-                DeleteBulkAction::make()
-                    ->visible(fn (): bool => static::canManageTours()),
-            ])
-            ->recordAction('edit');
+        return TourTableSchema::configure($table);
     }
 
     public static function getPages(): array
@@ -176,7 +108,7 @@ class TourResource extends Resource
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    protected static function prefillCloneData(array $data): array
+    public static function prefillCloneData(array $data): array
     {
         $data['name'] = static::getClonedTourName($data['name'] ?? 'Tour');
         $data['is_active'] = false;
@@ -184,12 +116,8 @@ class TourResource extends Resource
         return static::normalizeFormData($data);
     }
 
-    protected static function canManageTours(): bool
+    public static function canManageTours(): bool
     {
-        if (! auth()->check()) {
-            return false;
-        }
-
-        return FilamentTourEditorPlugin::get()->resolveCanAccessBuilder();
+        return Gate::allows('create', Tour::class);
     }
 }

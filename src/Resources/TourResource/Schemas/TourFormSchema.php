@@ -11,8 +11,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
@@ -35,7 +35,7 @@ class TourFormSchema
     }
 
     /**
-     * @return array<int, \Filament\Schemas\Components\Component>
+     * @return array<int, Component>
      */
     public static function components(
         bool $includeTourId = false,
@@ -50,6 +50,7 @@ class TourFormSchema
             Textarea::make('description')
                 ->rows(2),
             Toggle::make('is_active')
+                ->label('Active')
                 ->default(false),
             Repeater::make('json_config.steps')
                 ->label('Steps')

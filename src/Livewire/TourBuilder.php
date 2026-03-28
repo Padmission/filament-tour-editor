@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Padmission\FilamentTourEditor\FilamentTourEditorPlugin;
 use Padmission\FilamentTourEditor\Models\Tour;
 use Padmission\FilamentTourEditor\Resources\TourResource\Schemas\TourFormSchema;
 
@@ -184,13 +183,7 @@ class TourBuilder extends Component implements HasActions, HasSchemas
 
     public function canAccess(): bool
     {
-        $user = auth()->user();
-
-        if (! $user) {
-            return false;
-        }
-
-        return FilamentTourEditorPlugin::get()->resolveCanAccessBuilder();
+        return Gate::allows('create', Tour::class);
     }
 
     /**

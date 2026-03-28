@@ -9,8 +9,10 @@ use Filament\Panel;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use JibayMcs\FilamentTour\FilamentTourPlugin;
 use Livewire\Component;
+use Padmission\FilamentTourEditor\Models\Tour;
 use Padmission\FilamentTourEditor\Resources\TourResource\TourResource;
 
 class FilamentTourEditorPlugin implements Plugin
@@ -22,7 +24,6 @@ class FilamentTourEditorPlugin implements Plugin
     private bool|Closure $enableResource = true;
     private string|Closure|null $navigationGroup = 'System';
     private string|Closure|null $navigationLabel = 'Tours';
-    private ?Closure $canAccessBuilder = null;
 
     public static function make(): static
     {
@@ -66,7 +67,7 @@ class FilamentTourEditorPlugin implements Plugin
                 Action::make('launchTourBuilder')
                     ->label('Build Tour')
                     ->icon('heroicon-o-academic-cap')
-                    ->visible(fn (): bool => $this->resolveCanAccessBuilder())
+                    ->visible(fn (): bool => Gate::allows('create', Tour::class))
                     ->action(function (Component $livewire): void {
                         $livewire->dispatch('launch-tour-builder');
                     }),
@@ -110,19 +111,6 @@ class FilamentTourEditorPlugin implements Plugin
         return $this;
     }
 
-    /**
-     * Define who can access the visual tour builder.
-     *
-     * The closure receives the authenticated user and should return a boolean.
-     * Defaults to: any authenticated user.
-     */
-    public function canAccessBuilder(?Closure $callback): static
-    {
-        $this->canAccessBuilder = $callback;
-
-        return $this;
-    }
-
     public function navigationGroup(string|Closure|null $group): static
     {
         $this->navigationGroup = $group;
@@ -135,15 +123,6 @@ class FilamentTourEditorPlugin implements Plugin
         $this->navigationLabel = $label;
 
         return $this;
-    }
-
-    public function resolveCanAccessBuilder(): bool
-    {
-        if ($this->canAccessBuilder) {
-            return (bool) call_user_func($this->canAccessBuilder, auth()->user());
-        }
-
-        return (bool) auth()->user();
     }
 
     public function getNavigationGroup(): ?string
