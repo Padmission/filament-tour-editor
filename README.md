@@ -199,6 +199,30 @@ The CSV format matches the export format, so you can export from one environment
 
 **Tour identity and localStorage:** Tour completion is tracked in the browser via `localStorage` using the tour's `json_config.id` (or `Str::slug(name)` as fallback). When using "Replace" mode, as long as the imported tours have the same names or `json_config.id` values, users won't be re-prompted for tours they've already completed.
 
+### Generating Migrations from Database Tours
+
+Export your database tours as a deployable migration file. This is useful when you build tours in a dev environment and need to deploy them to production — the migration runs exactly once during deploy.
+
+```bash
+# Default: updateOrCreate (adds new tours, updates existing by name + route)
+php artisan tour:generate-migration
+
+# Replace mode: truncates all tours and re-inserts
+php artisan tour:generate-migration --mode=replace
+
+# Only export active tours
+php artisan tour:generate-migration --active-only
+```
+
+This generates a timestamped migration in `database/migrations/` (e.g., `2026_03_28_055542_seed_tours.php`) containing the full tour data as a PHP array. Commit and deploy it like any other migration.
+
+**Modes:**
+
+| Mode | Behavior |
+|------|----------|
+| `add` (default) | Uses `updateOrInsert` keyed on `name` + `route`. Safe to run multiple times — existing tours are updated, new ones are added. |
+| `replace` | Truncates the `tours` table and inserts all tours fresh. Use when you want the target environment to exactly match the source. |
+
 ### Trait-Based Tours (Code-Defined)
 
 This package doesn't replace the `HasTour` trait from [filament-tour](https://github.com/JibayMcs/filament-tour). Tours defined in code via the trait continue to work alongside database-managed tours. When a page loads, both sources are merged and presented to the user.
