@@ -26,6 +26,7 @@ class TourTableSchema
             ->recordActions(static::recordActions())
             ->toolbarActions([
                 DeleteBulkAction::make()
+                    ->color('danger')
                     ->visible(fn (): bool => TourResource::canManageTours()),
             ])
             ->recordAction('edit');
