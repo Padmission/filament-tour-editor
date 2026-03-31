@@ -73,7 +73,7 @@ class TourBuilder extends Component implements HasActions, HasSchemas
                 return Gate::allows('create', Tour::class);
             })
             ->slideOver()
-            ->modalDescription('Add steps, then use Picker to choose elements from the page. Open Advanced only if you need to adjust the selector, icon, or button labels.')
+            ->modalDescription('Add steps, then choose targets from the page. Click to select a target, or hold Shift while clicking to interact with menus, nav items, and slide-overs first. Open Advanced only if you need to adjust the selector, icon, or button labels.')
             ->modalSubmitActionLabel('Save')
             ->modalWidth(Width::TwoExtraLarge)
             ->extraModalFooterActions(fn (Action $action): array => [

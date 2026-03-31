@@ -12,20 +12,7 @@
             x-on:mouseleave="unhighlightElement()"
             class="fixed inset-0 z-[9998]"
             x-bind:style="`background: transparent; z-index: 2147483646; cursor: ${interacting ? interactionCursor : 'crosshair'};`"
-        >
-            <div
-                class="fixed top-4 right-4 z-[9999] rounded-full bg-gray-900/90 px-4 py-2 text-xs font-medium text-white shadow-lg backdrop-blur dark:bg-gray-700/90"
-                style="z-index: 2147483647;"
-            >
-                Click to select
-                <span class="mx-1 text-gray-300">•</span>
-                <kbd class="rounded border border-white/25 px-1.5 py-0.5 text-[10px] font-mono">Shift</kbd>
-                and click to interact
-                <span class="mx-1 text-gray-300">•</span>
-                <kbd class="rounded border border-white/25 px-1.5 py-0.5 text-[10px] font-mono">Esc</kbd>
-                to cancel
-            </div>
-        </div>
+        ></div>
     </template>
 
     {{-- Highlight outline --}}
