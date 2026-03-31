@@ -128,7 +128,7 @@ class TourFormSchema
                 ])
                 ->compact()
                 ->reorderable()
-                ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'New Step')
+                ->itemLabel(fn (array $state): string => $state['title'] ?? 'New Step')
                 ->defaultItems(0),
             Grid::make(3)
                 ->hidden(fn (LivewireComponent $livewire): bool => ! $livewire->showAdvancedTourFields)

@@ -10,11 +10,17 @@
             x-on:click.stop="pickElement($event)"
             x-on:mousemove="highlightElement($event)"
             x-on:mouseleave="unhighlightElement()"
-            class="fixed inset-0 z-[9998] cursor-crosshair"
-            style="background: transparent;"
+            class="fixed inset-0 z-[9998]"
+            x-bind:style="`background: transparent; z-index: 2147483646; cursor: ${interacting ? interactionCursor : 'crosshair'};`"
         >
-            <div class="fixed top-4 right-4 z-[9999] rounded-full bg-gray-900/90 px-4 py-2 text-xs font-medium text-white shadow-lg backdrop-blur dark:bg-gray-700/90">
-                Pick an element
+            <div
+                class="fixed top-4 right-4 z-[9999] rounded-full bg-gray-900/90 px-4 py-2 text-xs font-medium text-white shadow-lg backdrop-blur dark:bg-gray-700/90"
+                style="z-index: 2147483647;"
+            >
+                Click to select
+                <span class="mx-1 text-gray-300">•</span>
+                <kbd class="rounded border border-white/25 px-1.5 py-0.5 text-[10px] font-mono">Shift</kbd>
+                and click to interact
                 <span class="mx-1 text-gray-300">•</span>
                 <kbd class="rounded border border-white/25 px-1.5 py-0.5 text-[10px] font-mono">Esc</kbd>
                 to cancel
@@ -24,7 +30,7 @@
 
     {{-- Highlight outline --}}
     <div
-        x-show="picking && highlightStyle.display !== 'none'"
+        x-show="picking && ! interacting && highlightStyle.display !== 'none'"
         x-bind:style="`
             position: fixed;
             top: ${highlightStyle.top}px;
@@ -35,7 +41,7 @@
             border-radius: 6px;
             background: rgba(37, 99, 235, 0.08);
             pointer-events: none;
-            z-index: 9999;
+            z-index: 2147483647;
             transition: all 0.1s ease;
         `"
     >
@@ -53,6 +59,9 @@
 <script>
 Alpine.data('tourPicker', () => ({
     picking: false,
+    interacting: false,
+    shiftPressed: false,
+    pointerPosition: { clientX: null, clientY: null },
     pickingItemKey: null,
     pickingItemIndex: null,
     recentlyPickedItemIndex: null,
@@ -61,6 +70,13 @@ Alpine.data('tourPicker', () => ({
     previewModalId: null,
     previewStarted: false,
     previewWatchInterval: null,
+    isForwardingInteraction: false,
+    interactionCursor: 'default',
+    pickingClickHandler: null,
+    pickingMoveHandler: null,
+    pickingLeaveHandler: null,
+    pickingKeyDownHandler: null,
+    pickingKeyUpHandler: null,
     highlightStyle: { top: 0, left: 0, width: 0, height: 0, display: 'none' },
     highlightTag: '',
 
@@ -106,6 +122,11 @@ Alpine.data('tourPicker', () => ({
             ? Number(activePickButton.dataset.tourPickIndex)
             : null;
         this.picking = true;
+        this.interacting = false;
+        this.shiftPressed = false;
+        this.pointerPosition = { clientX: null, clientY: null };
+        this.interactionCursor = 'default';
+        this.bindPickingListeners();
         this.hiddenModalId = this.getOpenModalId();
 
         if (this.hiddenModalId) {
@@ -124,7 +145,12 @@ Alpine.data('tourPicker', () => ({
     cancelPicking() {
         if (!this.picking) return;
         this.picking = false;
+        this.interacting = false;
+        this.shiftPressed = false;
+        this.pointerPosition = { clientX: null, clientY: null };
         this.pickingItemKey = null;
+        this.interactionCursor = 'default';
+        this.unbindPickingListeners();
         this.highlightStyle = { top: 0, left: 0, width: 0, height: 0, display: 'none' };
         this.highlightTag = '';
 
@@ -141,6 +167,76 @@ Alpine.data('tourPicker', () => ({
         }
 
         this.hiddenModalId = null;
+    },
+
+    bindPickingListeners() {
+        this.unbindPickingListeners();
+
+        this.pickingClickHandler = (event) => {
+            this.pickElement(event);
+        };
+
+        this.pickingMoveHandler = (event) => {
+            this.highlightElement(event);
+        };
+
+        this.pickingLeaveHandler = () => {
+            this.unhighlightElement();
+        };
+
+        this.pickingKeyDownHandler = (event) => {
+            if (event.key !== 'Shift') {
+                return;
+            }
+
+            this.shiftPressed = true;
+            this.interacting = true;
+            this.updateInteractionCursor(this.getCurrentPointerTarget());
+            this.unhighlightElement();
+        };
+
+        this.pickingKeyUpHandler = (event) => {
+            if (event.key !== 'Shift') {
+                return;
+            }
+
+            this.shiftPressed = false;
+            this.interacting = false;
+            this.interactionCursor = 'default';
+        };
+
+        window.addEventListener('click', this.pickingClickHandler, true);
+        window.addEventListener('mousemove', this.pickingMoveHandler, true);
+        window.addEventListener('mouseleave', this.pickingLeaveHandler, true);
+        window.addEventListener('keydown', this.pickingKeyDownHandler, true);
+        window.addEventListener('keyup', this.pickingKeyUpHandler, true);
+    },
+
+    unbindPickingListeners() {
+        if (this.pickingClickHandler) {
+            window.removeEventListener('click', this.pickingClickHandler, true);
+            this.pickingClickHandler = null;
+        }
+
+        if (this.pickingMoveHandler) {
+            window.removeEventListener('mousemove', this.pickingMoveHandler, true);
+            this.pickingMoveHandler = null;
+        }
+
+        if (this.pickingLeaveHandler) {
+            window.removeEventListener('mouseleave', this.pickingLeaveHandler, true);
+            this.pickingLeaveHandler = null;
+        }
+
+        if (this.pickingKeyDownHandler) {
+            window.removeEventListener('keydown', this.pickingKeyDownHandler, true);
+            this.pickingKeyDownHandler = null;
+        }
+
+        if (this.pickingKeyUpHandler) {
+            window.removeEventListener('keyup', this.pickingKeyUpHandler, true);
+            this.pickingKeyUpHandler = null;
+        }
     },
 
     startPreview() {
@@ -213,15 +309,30 @@ Alpine.data('tourPicker', () => ({
     },
 
     highlightElement(event) {
-        if (!this.picking) return;
+        if (!this.picking || this.isForwardingInteraction) return;
 
-        const restore = this.hideBuilderElements();
-        const el = document.elementFromPoint(event.clientX, event.clientY);
-        restore();
+        this.pointerPosition = {
+            clientX: event.clientX,
+            clientY: event.clientY,
+        };
 
-        if (!el || this.isBuilderElement(el)) return;
+        const target = this.getTargetFromPoint(event.clientX, event.clientY);
 
-        const rect = el.getBoundingClientRect();
+        if (!target || this.isBuilderElement(target)) {
+            if (this.interacting) {
+                this.updateInteractionCursor(null);
+            }
+
+            return;
+        }
+
+        if (this.interacting) {
+            this.updateInteractionCursor(target);
+
+            return;
+        }
+
+        const rect = target.getBoundingClientRect();
         this.highlightStyle = {
             top: rect.top,
             left: rect.left,
@@ -229,7 +340,7 @@ Alpine.data('tourPicker', () => ({
             height: rect.height,
             display: 'block',
         };
-        this.highlightTag = this.getReadableLabel(el);
+        this.highlightTag = this.getReadableLabel(target);
     },
 
     unhighlightElement() {
@@ -239,18 +350,29 @@ Alpine.data('tourPicker', () => ({
     },
 
     pickElement(event) {
-        if (!this.picking) return;
+        if (!this.picking || this.isForwardingInteraction) return;
+
+        const target = this.getTargetFromPoint(event.clientX, event.clientY);
+
+        if (!target || this.isBuilderElement(target)) return;
+
+        if (event.shiftKey || this.shiftPressed) {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
+            this.shiftPressed = true;
+            this.interacting = true;
+            this.updateInteractionCursor(target);
+            this.forwardInteraction(target, event);
+
+            return;
+        }
 
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation?.();
 
-        const restore = this.hideBuilderElements();
-        const el = document.elementFromPoint(event.clientX, event.clientY);
-        restore();
-
-        if (!el || this.isBuilderElement(el)) return;
-
-        const selector = this.generateSelector(el);
+        const selector = this.generateSelector(target);
         const itemKey = this.pickingItemKey;
         const itemIndex = this.pickingItemIndex;
 
@@ -263,6 +385,120 @@ Alpine.data('tourPicker', () => ({
                 this.showPickedConfirmation(itemIndex);
             }, 100);
         }
+    },
+
+    forwardInteraction(element, event) {
+        if (!element || this.isForwardingInteraction) return;
+
+        const mouseEventOptions = {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            view: window,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            shiftKey: event.shiftKey || this.shiftPressed,
+        };
+
+        this.isForwardingInteraction = true;
+
+        if (typeof element.focus === 'function') {
+            element.focus({ preventScroll: true });
+        }
+
+        element.dispatchEvent(new MouseEvent('mousedown', mouseEventOptions));
+        element.dispatchEvent(new MouseEvent('mouseup', mouseEventOptions));
+        element.dispatchEvent(new MouseEvent('click', mouseEventOptions));
+
+        window.setTimeout(() => {
+            this.isForwardingInteraction = false;
+
+            if (this.picking) {
+                this.interacting = this.shiftPressed;
+
+                if (this.interacting) {
+                    this.updateInteractionCursor(this.getCurrentPointerTarget());
+                } else {
+                    this.interactionCursor = 'default';
+                }
+            }
+        }, 0);
+    },
+
+    getTargetFromPoint(clientX, clientY) {
+        const restore = this.hideBuilderElements();
+        const element = document.elementFromPoint(clientX, clientY);
+        restore();
+
+        return this.resolveTargetElement(element);
+    },
+
+    getCurrentPointerTarget() {
+        const { clientX, clientY } = this.pointerPosition;
+
+        if (clientX === null || clientY === null) {
+            return null;
+        }
+
+        return this.getTargetFromPoint(clientX, clientY);
+    },
+
+    updateInteractionCursor(target) {
+        if (!this.interacting) {
+            this.interactionCursor = 'default';
+
+            return;
+        }
+
+        const computedCursor = target ? window.getComputedStyle(target).cursor : null;
+
+        if (computedCursor && computedCursor !== 'auto' && computedCursor !== 'default') {
+            this.interactionCursor = computedCursor;
+
+            return;
+        }
+
+        this.interactionCursor = this.isInteractiveElement(target) ? 'pointer' : 'default';
+    },
+
+    resolveTargetElement(el) {
+        if (!el) return null;
+
+        const namedControl = el.matches('input[name], textarea[name], select[name]')
+            ? el
+            : el.closest('input[name], textarea[name], select[name]');
+
+        if (namedControl) {
+            return namedControl;
+        }
+
+        const interactive = el.closest([
+            'a[href]',
+            'button',
+            '[role="button"]',
+            '[role="menuitem"]',
+            '.fi-sidebar-item-btn',
+        ].join(', '));
+
+        if (interactive && !this.isBuilderElement(interactive)) {
+            return interactive;
+        }
+
+        return el;
+    },
+
+    isInteractiveElement(el) {
+        if (!el) {
+            return false;
+        }
+
+        return el.matches([
+            'a[href]',
+            'button',
+            '[role="button"]',
+            '[role="menuitem"]',
+            '.fi-sidebar-item-btn',
+        ].join(', '));
     },
 
     getOpenModalId() {
@@ -287,6 +523,29 @@ Alpine.data('tourPicker', () => ({
             } catch { return false; }
         };
 
+        const namedControl = el.matches('input[name], textarea[name], select[name]')
+            ? el
+            : el.closest('input[name], textarea[name], select[name]');
+
+        if (namedControl?.name) {
+            const namedSelector = `${namedControl.tagName.toLowerCase()}[name="${CSS.escape(namedControl.name)}"]`;
+
+            if (isUniqueOrContains(namedSelector)) return namedSelector;
+        }
+
+        for (const selector of [
+            '.fi-modal-slide-over-window',
+            '.fi-modal-window',
+            '.fi-sidebar-nav',
+            '.fi-sidebar',
+            '.fi-topbar',
+            '.fi-page-header',
+        ]) {
+            const container = el.closest(selector);
+
+            if (container && isUnique(selector)) return selector;
+        }
+
         // 1. Non-Livewire ID
         if (el.id && !el.id.includes('livewire')) {
             return '#' + CSS.escape(el.id);
@@ -307,12 +566,7 @@ Alpine.data('tourPicker', () => ({
             try {
                 const path = new URL(linkEl.getAttribute('href'), location.origin).pathname;
                 const linkSel = `a[href$="${CSS.escape(path)}"]`;
-                if (isUnique(linkSel)) {
-                    if (linkEl !== el) {
-                        const childPart = this.buildElementPart(el);
-                        const scoped = linkSel + ' ' + childPart;
-                        if (isUnique(scoped)) return scoped;
-                    }
+                if (isUniqueOrContains(linkSel)) {
                     return linkSel;
                 }
             } catch {}
@@ -325,10 +579,6 @@ Alpine.data('tourPicker', () => ({
             if (label) {
                 const sel = `button[aria-label="${CSS.escape(label)}"]`;
                 if (isUniqueOrContains(sel)) {
-                    if (btn !== el) {
-                        const scoped = sel + ' ' + this.buildElementPart(el);
-                        if (isUnique(scoped)) return scoped;
-                    }
                     return sel;
                 }
             }

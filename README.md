@@ -7,7 +7,7 @@ Built on top of [jibaymcs/filament-tour](https://github.com/JibayMcs/filament-to
 ## Features
 
 - **Visual Tour Builder** — slide-over panel accessible from the user menu on any page
-- **Element Picker** — hover-highlight and click to select target elements with smart CSS selector generation
+- **Element Picker** — click to select targets, hold `Shift` to interact with the page first, with smart CSS selector generation for nav, slide-overs, and form controls
 - **Database-Backed Tours** — tours stored in a `tours` table, managed via a Filament resource
 - **LaunchTourAction** — drop-in Filament action that shows a "Take Tour" button on any page with an active tour
 - **Preview Mode** — preview tours in-place before saving
@@ -145,7 +145,12 @@ The package automatically detects `App\Policies\TourPolicy` and uses it over the
 3. Select **Build Tour**
 4. Add steps with titles and descriptions
 5. Click **Pick target** to select a page element for each step (or leave empty for a centered modal step)
-6. Click **Save** to persist, or **Preview** to test first
+6. While the picker is active:
+   - click to select an element
+   - hold `Shift` and click to interact with the page without leaving picker mode
+   - release `Shift` to return to pick mode
+   - use `Shift` clicks to open sidebar groups, topbar menus, dropdowns, or slide-overs before selecting an element inside them
+7. Click **Save** to persist, or **Preview** to test first
 
 ### Managing Tours (Admin Resource)
 
