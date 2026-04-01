@@ -68,7 +68,12 @@ Alpine.data('tourPicker', () => ({
     highlightTag: '',
 
     init() {
-        $wire.set('currentPath', window.location.pathname);
+        // Replace numeric IDs and UUIDs with {record} so tours match all records of a resource
+        const normalizedPath = window.location.pathname.replace(
+            /\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+)(\/|$)/gi,
+            '/{record}$2'
+        );
+        $wire.set('currentPath', normalizedPath);
 
         $wire.on('start-picking', ({ itemKey }) => {
             this.startPicking(itemKey);

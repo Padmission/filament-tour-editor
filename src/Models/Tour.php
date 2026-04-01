@@ -89,6 +89,10 @@ class Tour extends Model
 
     public function getResolvedRoutePath(): string
     {
+        if (str_contains($this->route, '{')) {
+            return $this->route;
+        }
+
         try {
             return parse_url(route($this->route))['path'] ?? '/';
         } catch (\Exception) {
