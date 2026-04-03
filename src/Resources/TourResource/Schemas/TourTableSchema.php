@@ -2,6 +2,7 @@
 
 namespace Padmission\FilamentTourEditor\Resources\TourResource\Schemas;
 
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -23,6 +24,11 @@ class TourTableSchema
             ->columns(static::columns())
             ->defaultSort('sort_order')
             ->reorderable('sort_order')
+            ->reorderRecordsTriggerAction(
+                fn (Action $action, bool $isReordering): Action => $action
+                    ->button()
+                    ->label($isReordering ? 'Done Reordering Tours' : 'Reorder Tours'),
+            )
             ->recordActions(static::recordActions())
             ->toolbarActions([
                 DeleteBulkAction::make()
@@ -67,7 +73,7 @@ class TourTableSchema
     }
 
     /**
-     * @return array<int, \Filament\Actions\Action|ActionGroup>
+     * @return array<int, Action|ActionGroup>
      */
     public static function recordActions(): array
     {
