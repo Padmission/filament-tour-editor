@@ -123,6 +123,7 @@ class TourBuilder extends Component implements HasActions, HasSchemas
                     'name' => $data['name'],
                     'description' => $data['description'] ?? '',
                     'route' => $data['route'] ?? $this->currentPath ?: '/',
+                    'panel' => \Filament\Facades\Filament::getCurrentPanel()?->getId(),
                     'is_active' => $data['is_active'] ?? false,
                     'json_config' => [
                         'id' => $tour?->json_config['id'] ?? Str::slug($data['name']),
@@ -174,6 +175,7 @@ class TourBuilder extends Component implements HasActions, HasSchemas
             'name' => $data['name'],
             'description' => $data['description'] ?? '',
             'route' => $data['route'] ?? $this->currentPath ?: '/',
+            'panel' => \Filament\Facades\Filament::getCurrentPanel()?->getId(),
             'is_active' => false,
             'json_config' => $jsonConfig,
         ]);

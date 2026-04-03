@@ -2,6 +2,7 @@
 
 namespace Padmission\FilamentTourEditor\Resources\TourResource;
 
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Table;
@@ -23,7 +24,13 @@ class TourResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withoutGlobalScopes();
+        $panelId = Filament::getCurrentPanel()?->getId();
+
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes()
+            ->when($panelId, fn (Builder $query) => $query->where(
+                fn (Builder $q) => $q->where('panel', $panelId)->orWhereNull('panel')
+            ));
     }
 
     public static function form(Schema $schema): Schema

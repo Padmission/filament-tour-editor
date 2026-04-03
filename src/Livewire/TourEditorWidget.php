@@ -82,8 +82,13 @@ class TourEditorWidget extends FilamentTourWidget
 
     private function loadDatabaseTours(): void
     {
+        $panelId = Filament::getCurrentPanel()?->getId();
+
         $dbTours = Tour::query()
             ->active()
+            ->when($panelId, fn ($query) => $query->where(
+                fn ($q) => $q->where('panel', $panelId)->orWhereNull('panel')
+            ))
             ->orderBy('sort_order')
             ->get();
 

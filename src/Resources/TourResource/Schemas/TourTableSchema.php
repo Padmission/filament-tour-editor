@@ -41,6 +41,10 @@ class TourTableSchema
             TextColumn::make('name')
                 ->searchable()
                 ->sortable(),
+            TextColumn::make('panel')
+                ->badge()
+                ->searchable()
+                ->sortable(),
             TextColumn::make('route')
                 ->state(fn (Tour $record): string => $record->getResolvedRoutePath())
                 ->url(fn (Tour $record): string => $record->getResolvedRoutePath())
