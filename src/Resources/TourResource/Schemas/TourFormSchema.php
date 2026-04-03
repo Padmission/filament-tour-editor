@@ -149,10 +149,32 @@ class TourFormSchema
                 ->columnSpanFull(),
             TextInput::make('route')
                 ->required()
-                ->helperText('The named route or URL path where this tour should appear (e.g., filament.app.pages.dashboard)')
+                ->helperText('The URL path where this tour should appear (auto-set from current page)')
                 ->hidden(fn (LivewireComponent $livewire): bool => ! $livewire->showAdvancedTourFields)
                 ->dehydratedWhenHidden()
                 ->maxLength(255)
+                ->rules([
+                    fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                        if (blank($value)) {
+                            return;
+                        }
+
+                        $routes = collect(\Illuminate\Support\Facades\Route::getRoutes()->getRoutes());
+                        $trimmedPath = ltrim($value, '/');
+
+                        // Check as named route
+                        if (! str_contains($value, '/') && \Illuminate\Support\Facades\Route::has($value)) {
+                            return;
+                        }
+
+                        // Check as URL path (with {record} placeholders matching route parameters)
+                        if ($routes->contains(fn ($route) => $route->uri() === $trimmedPath)) {
+                            return;
+                        }
+
+                        $fail('This route does not match any registered application route.');
+                    },
+                ])
                 ->columnSpanFull(),
         ];
     }
