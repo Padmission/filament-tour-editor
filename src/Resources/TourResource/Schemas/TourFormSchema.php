@@ -18,6 +18,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\IconSize;
 use Filament\Support\Enums\Size;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Str;
 use Livewire\Component as LivewireComponent;
@@ -28,9 +29,10 @@ class TourFormSchema
         Schema $schema,
         bool $includeTourId = false,
         ?Closure $pickElementAction = null,
+        ?string $previewStepActionHandler = null,
     ): Schema {
         return $schema
-            ->schema(static::components($includeTourId, $pickElementAction))
+            ->schema(static::components($includeTourId, $pickElementAction, $previewStepActionHandler))
             ->columns(1);
     }
 
@@ -40,6 +42,7 @@ class TourFormSchema
     public static function components(
         bool $includeTourId = false,
         ?Closure $pickElementAction = null,
+        ?string $previewStepActionHandler = null,
     ): array {
         return [
             Hidden::make('tour_id')
@@ -125,9 +128,22 @@ class TourFormSchema
                                     'danger',
                                 ]),
                         ]),
+                    Select::make('popoverWidth')
+                        ->label('Popover Width')
+                        ->hidden(fn (LivewireComponent $livewire): bool => ! $livewire->showAdvancedTourFields)
+                        ->dehydratedWhenHidden()
+                        ->native(false)
+                        ->options(static::getWidthOptions())
+                        ->placeholder('Default width'),
                 ])
                 ->compact()
                 ->reorderable()
+                ->extraItemActions($previewStepActionHandler ? [
+                    Action::make('previewStep')
+                        ->label('Preview step')
+                        ->icon(Heroicon::OutlinedPlay)
+                        ->callParent($previewStepActionHandler),
+                ] : [])
                 ->itemLabel(fn (array $state): string => $state['title'] ?? 'New Step')
                 ->defaultItems(0),
             Grid::make(3)
@@ -154,7 +170,7 @@ class TourFormSchema
                 ->dehydratedWhenHidden()
                 ->maxLength(255)
                 ->rules([
-                    fn (): \Closure => function (string $attribute, mixed $value, \Closure $fail): void {
+                    fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
                         if (blank($value)) {
                             return;
                         }
@@ -191,6 +207,18 @@ class TourFormSchema
                     ->after('Outlined')
                     ->headline()
                     ->value(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function getWidthOptions(): array
+    {
+        return collect(Width::cases())
+            ->mapWithKeys(fn (Width $width): array => [
+                $width->value => Str::of($width->name)->headline()->value(),
             ])
             ->all();
     }

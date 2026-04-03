@@ -95,6 +95,7 @@ class TourBuilder extends Component implements HasActions, HasSchemas
 
                     $this->dispatch('start-picking', itemKey: (string) $itemKey);
                 },
+                previewStepActionHandler: 'previewMountedStep',
             ))
             ->action(function (array $data, array $arguments, Action $action): void {
                 $tour = $this->resolveTourForCurrentPage($data['tour_id'] ?? null);
@@ -112,8 +113,7 @@ class TourBuilder extends Component implements HasActions, HasSchemas
                 }
 
                 if ($arguments['preview'] ?? false) {
-                    $this->dispatch('filament-tour-editor::start-preview');
-                    $this->dispatch('filament-tour-editor::preview-tour', tour: $this->buildPreviewTour($data, $validSteps, $tour));
+                    $this->dispatchPreviewTour($this->buildPreviewTour($data, $validSteps, $tour));
                     $action->halt();
 
                     return;
@@ -149,13 +149,83 @@ class TourBuilder extends Component implements HasActions, HasSchemas
             });
     }
 
+    protected function previewStepAction(string|int|null $itemKey): void
+    {
+        if ($itemKey === null) {
+            return;
+        }
+
+        $data = $this->getMountedActionData();
+
+        if ($data === null) {
+            return;
+        }
+
+        $step = data_get($data, "json_config.steps.{$itemKey}");
+
+        if (! is_array($step)) {
+            return;
+        }
+
+        if (blank($step['title'] ?? null)) {
+            Notification::make()
+                ->title('Add a step title before previewing')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $previewData = $data;
+        $previewData['name'] = filled($previewData['name'] ?? null) ? $previewData['name'] : $step['title'];
+        $validStepEntries = $this->extractValidStepEntries($data);
+        $previewStartIndex = collect($validStepEntries)
+            ->search(fn (array $entry): bool => (string) $entry['key'] === (string) $itemKey);
+
+        if ($previewStartIndex === false) {
+            Notification::make()
+                ->title('Add a step title before previewing')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $validSteps = array_map(
+            fn (array $entry): array => $entry['step'],
+            $validStepEntries,
+        );
+
+        $tour = $this->resolveTourForCurrentPage($previewData['tour_id'] ?? null);
+
+        $this->dispatchPreviewTour($this->buildPreviewTour(
+            $previewData,
+            $validSteps,
+            $tour,
+            previewStartIndex: $previewStartIndex,
+        ));
+    }
+
+    public function previewMountedStep(array|string|int|null $itemKey): void
+    {
+        if (is_array($itemKey)) {
+            $itemKey = data_get($itemKey, 'item');
+        }
+
+        $this->previewStepAction($itemKey);
+    }
+
     /**
      * @param  array<string, mixed>  $data
      * @param  array<int, array<string, mixed>>  $validSteps
      * @return array<string, mixed>
      */
-    protected function buildPreviewTour(array $data, array $validSteps, ?Tour $tour = null): array
-    {
+    protected function buildPreviewTour(
+        array $data,
+        array $validSteps,
+        ?Tour $tour = null,
+        ?int $previewStartIndex = null,
+    ): array {
         $jsonConfig = [
             'id' => 'preview-' . Str::lower(Str::random(8)),
             'steps' => $validSteps,
@@ -180,7 +250,13 @@ class TourBuilder extends Component implements HasActions, HasSchemas
             'json_config' => $jsonConfig,
         ]);
 
-        return $previewTour->toFilamentTourArray();
+        $previewTourArray = $previewTour->toFilamentTourArray();
+
+        if ($previewStartIndex !== null) {
+            $previewTourArray['previewStartIndex'] = $previewStartIndex;
+        }
+
+        return $previewTourArray;
     }
 
     public function canAccess(): bool
@@ -250,17 +326,62 @@ class TourBuilder extends Component implements HasActions, HasSchemas
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    protected function getMountedActionData(): ?array
+    {
+        if (empty($this->mountedActions)) {
+            return null;
+        }
+
+        $mountedActionIndex = array_key_last($this->mountedActions);
+
+        if ($mountedActionIndex === null) {
+            return null;
+        }
+
+        $data = data_get($this->mountedActions, "{$mountedActionIndex}.data");
+
+        return is_array($data) ? $data : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $tour
+     */
+    protected function dispatchPreviewTour(array $tour): void
+    {
+        $this->dispatch('filament-tour-editor::start-preview');
+        $this->dispatch('filament-tour-editor::preview-tour', tour: $tour);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<int, array<string, mixed>>|null
      */
     protected function extractValidSteps(array $data): ?array
     {
-        $validSteps = collect(data_get($data, 'json_config.steps', []))
-            ->filter(fn (array $step): bool => ! empty($step['title']))
-            ->values()
-            ->toArray();
+        $validSteps = array_map(
+            fn (array $entry): array => $entry['step'],
+            $this->extractValidStepEntries($data),
+        );
 
         return empty($validSteps) ? null : $validSteps;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<int, array{key: string|int, step: array<string, mixed>}>
+     */
+    protected function extractValidStepEntries(array $data): array
+    {
+        return collect(data_get($data, 'json_config.steps', []))
+            ->filter(fn (mixed $step): bool => is_array($step) && ! empty($step['title']))
+            ->map(fn (array $step, string|int $key): array => [
+                'key' => $key,
+                'step' => $step,
+            ])
+            ->values()
+            ->toArray();
     }
 
     protected function normalizePickedItemKey(string $itemKey): string

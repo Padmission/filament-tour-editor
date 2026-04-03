@@ -2,6 +2,8 @@
 
 namespace Padmission\FilamentTourEditor\Models;
 
+use Filament\Facades\Filament;
+use Filament\Support\Enums\Width;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +19,13 @@ class Tour extends Model
             'json_config' => 'array',
             'is_active' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $tour): void {
+            $tour->panel = $tour->resolvePanelFromRoute();
+        });
     }
 
     public function scopeActive(Builder $query): Builder
@@ -67,6 +76,12 @@ class Tour extends Model
                 $data['element'] = $step['element'];
             }
 
+            $popoverWidth = $step['popoverWidth'] ?? null;
+
+            if (is_string($popoverWidth) && Width::tryFrom($popoverWidth) instanceof Width) {
+                $data['popover']['width'] = $popoverWidth;
+            }
+
             return $data;
         })->toArray();
 
@@ -98,6 +113,37 @@ class Tour extends Model
         } catch (\Exception) {
             return $this->route;
         }
+    }
+
+    public function resolvePanelFromRoute(): ?string
+    {
+        $path = $this->getResolvedRoutePath();
+
+        if (! str_starts_with($path, '/')) {
+            return $this->panel;
+        }
+
+        $panels = collect(Filament::getPanels());
+
+        $matchedPanel = $panels
+            ->sortByDesc(fn ($panel): int => strlen(trim($panel->getPath(), '/')))
+            ->first(function ($panel) use ($path): bool {
+                $panelPath = '/' . trim($panel->getPath(), '/');
+
+                if ($panelPath === '/') {
+                    return false;
+                }
+
+                return $path === $panelPath || str_starts_with($path, "{$panelPath}/");
+            });
+
+        if ($matchedPanel) {
+            return $matchedPanel->getId();
+        }
+
+        return $panels
+            ->first(fn ($panel): bool => '/' . trim($panel->getPath(), '/') === '/')
+            ?->getId();
     }
 
     protected static function newFactory(): \Padmission\FilamentTourEditor\Database\Factories\TourFactory
