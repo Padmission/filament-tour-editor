@@ -23,8 +23,8 @@ class FilamentTourEditorServiceProvider extends PackageServiceProvider
             ->hasConfigFile(static::$name)
             ->hasViews(static::$viewNamespace)
             ->hasCommand(GenerateTourMigrationCommand::class)
-            ->hasMigration('2026_03_30_184712_000001_create_tours_table')
-            ->hasMigration('2026_03_30_184712_000002_add_panel_to_tours_table')
+            ->hasMigration('create_tours_table')
+            ->hasMigration('add_panel_to_tours_table')
             ->runsMigrations();
     }
 
