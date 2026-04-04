@@ -20,6 +20,7 @@ return new class extends Migration
             $table->json('json_config');
             $table->boolean('is_active')->default(false);
             $table->integer('sort_order')->default(0);
+            $table->string('panel')->nullable();
             $table->timestamps();
         });
     }
