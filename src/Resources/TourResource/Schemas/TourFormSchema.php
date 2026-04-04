@@ -101,7 +101,8 @@ class TourFormSchema
                         ->maxLength(255),
                     Textarea::make('description')
                         ->required()
-                        ->rows(2),
+                        ->rows(3)
+                        ->helperText('Use a blank line to start a new paragraph.'),
                     TextInput::make('element')
                         ->label('CSS Selector')
                         ->helperText('Leave empty for a centered modal step')

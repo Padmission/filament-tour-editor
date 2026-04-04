@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use JibayMcs\FilamentTour\Support\PopoverDescriptionFormatter;
 
 class Tour extends Model
 {
@@ -64,7 +65,7 @@ class Tour extends Model
                         ->with('icon', $step['icon'] ?? null)
                         ->with('iconColor', $step['iconColor'] ?? null)
                         ->render(),
-                    'description' => e($step['description'] ?? ''),
+                    'description' => PopoverDescriptionFormatter::format($step['description'] ?? null),
                 ],
                 'progress' => [
                     'current' => $index,

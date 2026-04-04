@@ -43,7 +43,7 @@ Add the repository to your `composer.json`:
 Then install via Composer:
 
 ```bash
-composer require padmission/filament-tour-editor:dev-main
+composer require padmission/filament-tour-editor:dev-master
 ```
 
 Run migrations:
@@ -81,6 +81,9 @@ FilamentTourEditorPlugin::make()
 
     // Sidebar navigation label
     ->navigationLabel('Manage Tours')
+
+    // Enable the CSS selector helper from the base filament-tour plugin
+    ->enableCssSelector()
 
     // Disable the visual builder if you only need the admin resource (default: true)
     ->enableBuilder(true)
@@ -144,19 +147,30 @@ The package automatically detects `App\Policies\TourPolicy` and uses it over the
 2. Click your avatar in the top-right corner
 3. Select **Build Tour**
 4. Add steps with titles and descriptions
+   - use a blank line in a step description to start a new paragraph in the popover
 5. Click **Pick target** to select a page element for each step (or leave empty for a centered modal step)
 6. While the picker is active:
    - click to select an element
    - hold `Shift` and click to interact with the page without leaving picker mode
    - release `Shift` to return to pick mode
    - use `Shift` clicks to open sidebar groups, topbar menus, dropdowns, or slide-overs before selecting an element inside them
-7. Click **Save** to persist, or **Preview** to test first
+7. Use **Preview step** on any repeater item to jump directly into that step while still loading the full tour context
+8. Click **Save** to persist, or **Preview** to test first
+
+Advanced builder options include:
+
+- custom popover widths per step
+- custom icons and icon colors
+- named routes or raw URL paths
+- record placeholders like `/admin/posts/{record}/edit`
+- custom Next / Previous / Done button labels
 
 ### Managing Tours (Admin Resource)
 
 The **Manage Tours** page (under your configured navigation group) provides:
 
 - Table listing all tours with name, route, step count, and active status
+- Panel-aware tabs so you can filter tours by Filament panel, plus an Unassigned tab for legacy rows
 - Inline editing via slide-over modals
 - Clone action for duplicating tours
 - Drag-and-drop reordering via `sort_order`
@@ -178,6 +192,12 @@ protected function getHeaderActions(): array
 ```
 
 No configuration needed — it resolves the tour from the current route automatically.
+
+`LaunchTourAction` is best for named-route tours. For database tours created in the builder, the route can be either:
+
+- a named route like `filament.admin.pages.dashboard`
+- a URL path like `/dashboard`
+- a URL path with placeholders like `/properties/{record}/edit`
 
 ### Cloning Tours
 
@@ -258,6 +278,7 @@ Tours are stored in the `tours` table with the following structure:
 | `json_config` | json | Tour ID, steps array, and button config |
 | `is_active` | boolean | Whether the tour is shown to users |
 | `sort_order` | integer | Display/load order |
+| `panel` | string (nullable) | Detected Filament panel id used for Manage Tours tabs and panel-scoped loading |
 
 ### Scopes
 
