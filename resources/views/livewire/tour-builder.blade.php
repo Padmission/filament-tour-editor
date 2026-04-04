@@ -464,11 +464,21 @@ Alpine.data('tourPicker', () => ({
             return namedControl;
         }
 
+        const frameworkInteractive = this.findClosestMatchingAncestor(el, (candidate) => {
+            return this.hasStableIdentityAttributes(candidate)
+                || candidate.matches('[role="tab"], [role="button"], [role="menuitem"]');
+        });
+
+        if (frameworkInteractive && !this.isBuilderElement(frameworkInteractive)) {
+            return frameworkInteractive;
+        }
+
         const interactive = el.closest([
             'a[href]',
             'button',
             '[role="button"]',
             '[role="menuitem"]',
+            '[role="tab"]',
             '.fi-sidebar-item-btn',
         ].join(', '));
 
@@ -479,9 +489,244 @@ Alpine.data('tourPicker', () => ({
         return el;
     },
 
+    findClosestMatchingAncestor(start, predicate) {
+        let current = start instanceof Element ? start : start?.parentElement;
+
+        while (current) {
+            if (predicate(current)) {
+                return current;
+            }
+
+            current = current.parentElement;
+        }
+
+        return null;
+    },
+
+    getAttributePriority(name) {
+        if (name === 'wire:key') {
+            return 0;
+        }
+
+        if (name.startsWith('wire:click')) {
+            return 1;
+        }
+
+        if (name.startsWith('wire:model')) {
+            return 2;
+        }
+
+        if (name.startsWith('wire:target')) {
+            return 3;
+        }
+
+        if (name.startsWith('wire:navigate')) {
+            return 4;
+        }
+
+        if (name.startsWith('x-on:click') || name.startsWith('@click')) {
+            return 5;
+        }
+
+        if (name.startsWith('x-sort:item') || name.startsWith('x-sort:handle')) {
+            return 6;
+        }
+
+        if (name.startsWith('x-model')) {
+            return 7;
+        }
+
+        if (name.startsWith('x-ref')) {
+            return 8;
+        }
+
+        if (name.startsWith('data-')) {
+            return 9;
+        }
+
+        return 10;
+    },
+
+    isStableIdentityAttribute(name, value) {
+        if (!name || !value) {
+            return false;
+        }
+
+        const unstablePrefixes = [
+            'wire:id',
+            'wire:snapshot',
+            'wire:effects',
+            'wire:loading',
+            'wire:dirty',
+            'wire:offline',
+            'wire:poll',
+            'wire:cloak',
+            'x-id',
+        ];
+
+        if (unstablePrefixes.some((prefix) => name.startsWith(prefix))) {
+            return false;
+        }
+
+        if (name === 'wire:key') {
+            return true;
+        }
+
+        if (
+            name.startsWith('wire:click')
+            || name.startsWith('wire:model')
+            || name.startsWith('wire:target')
+            || name.startsWith('wire:navigate')
+            || name.startsWith('x-on:click')
+            || name.startsWith('@click')
+            || name.startsWith('x-sort:item')
+            || name.startsWith('x-sort:handle')
+            || name.startsWith('x-model')
+            || name.startsWith('x-ref')
+        ) {
+            return true;
+        }
+
+        const skipDataAttrs = ['data-livewire', 'data-id', 'wire:', 'x-'];
+
+        if (value.length > 200) {
+            return false;
+        }
+
+        return name.startsWith('data-') && !skipDataAttrs.some((fragment) => name.includes(fragment));
+    },
+
+    hasStableIdentityAttributes(el) {
+        return Array.from(el?.attributes ?? []).some((attr) => this.isStableIdentityAttribute(attr.name, attr.value));
+    },
+
+    buildAttributeSelector(name, value, tag = null) {
+        const escapedName = CSS.escape(name);
+        const escapedValue = CSS.escape(value);
+        const baseSelector = `[${escapedName}="${escapedValue}"]`;
+
+        if (!tag) {
+            return baseSelector;
+        }
+
+        return `${tag}${baseSelector}`;
+    },
+
+    buildSubstringAttributeSelector(name, value, tag = null) {
+        const escapedName = CSS.escape(name);
+        const escapedValue = CSS.escape(value);
+        const baseSelector = `[${escapedName}*="${escapedValue}"]`;
+
+        if (!tag) {
+            return baseSelector;
+        }
+
+        return `${tag}${baseSelector}`;
+    },
+
+    extractDerivedAttributeValues(name, value) {
+        if (!(name.startsWith('x-on:click') || name.startsWith('@click') || name.startsWith('wire:click'))) {
+            return [];
+        }
+
+        const normalizedValue = value.replace(/\s+/g, ' ').trim();
+        const derivedValues = new Set();
+        const patterns = [
+            /textContent\.trim\(\)\s*===\s*['"]([^'"]+)['"]/g,
+            /includes\(['"]([^'"]+)['"]\)/g,
+            /dispatch\(['"]([^'"]+)['"]/g,
+            /open-modal['"],\s*JSON\.parse\(['"]([^'"]+)['"]\)/g,
+        ];
+
+        for (const pattern of patterns) {
+            for (const match of normalizedValue.matchAll(pattern)) {
+                const candidate = match[1]?.trim();
+
+                if (candidate && candidate.length <= 120) {
+                    derivedValues.add(candidate);
+                }
+            }
+        }
+
+        if (normalizedValue.length <= 180) {
+            derivedValues.add(normalizedValue);
+        }
+
+        return [...derivedValues];
+    },
+
+    getSelectorAnchors(el) {
+        const anchors = [];
+        const component = el.closest('[wire\\:name]');
+
+        if (component?.getAttribute('wire:name')) {
+            anchors.push(`[wire\\:name="${CSS.escape(component.getAttribute('wire:name'))}"]`);
+        }
+
+        const keyedAncestor = el.closest('[wire\\:key]');
+
+        if (keyedAncestor?.getAttribute('wire:key')) {
+            anchors.push(`[wire\\:key="${CSS.escape(keyedAncestor.getAttribute('wire:key'))}"]`);
+        }
+
+        const idAncestor = el.closest('[id]:not([id*="livewire"])');
+
+        if (idAncestor?.id) {
+            anchors.push(`#${CSS.escape(idAncestor.id)}`);
+        }
+
+        return [...new Set(anchors)];
+    },
+
+    findStableAttributeSelector(el, isUnique, isUniqueOrContains) {
+        const tag = el.tagName.toLowerCase();
+        const anchors = this.getSelectorAnchors(el);
+        const attributes = Array.from(el.attributes ?? [])
+            .filter((attr) => this.isStableIdentityAttribute(attr.name, attr.value))
+            .sort((left, right) => this.getAttributePriority(left.name) - this.getAttributePriority(right.name));
+
+        for (const attr of attributes) {
+            const selectorCandidates = [];
+
+            for (const derivedValue of this.extractDerivedAttributeValues(attr.name, attr.value)) {
+                selectorCandidates.push(
+                    this.buildSubstringAttributeSelector(attr.name, derivedValue, tag),
+                    this.buildSubstringAttributeSelector(attr.name, derivedValue),
+                );
+            }
+
+            if (attr.value.length <= 180) {
+                selectorCandidates.push(
+                    this.buildAttributeSelector(attr.name, attr.value, tag),
+                    this.buildAttributeSelector(attr.name, attr.value),
+                );
+            }
+
+            for (const selector of selectorCandidates) {
+                if (isUniqueOrContains(selector)) {
+                    return selector;
+                }
+
+                for (const anchor of anchors) {
+                    const anchoredSelector = `${anchor} ${selector}`;
+
+                    if (isUniqueOrContains(anchoredSelector)) {
+                        return anchoredSelector;
+                    }
+                }
+            }
+        }
+
+        return null;
+    },
+
     isInteractiveElement(el) {
         if (!el) {
             return false;
+        }
+
+        if (this.hasStableIdentityAttributes(el)) {
+            return true;
         }
 
         return el.matches([
@@ -489,6 +734,7 @@ Alpine.data('tourPicker', () => ({
             'button',
             '[role="button"]',
             '[role="menuitem"]',
+            '[role="tab"]',
             '.fi-sidebar-item-btn',
         ].join(', '));
     },
@@ -523,6 +769,12 @@ Alpine.data('tourPicker', () => ({
             const namedSelector = `${namedControl.tagName.toLowerCase()}[name="${CSS.escape(namedControl.name)}"]`;
 
             if (isUniqueOrContains(namedSelector)) return namedSelector;
+        }
+
+        const stableAttributeSelector = this.findStableAttributeSelector(el, isUnique, isUniqueOrContains);
+
+        if (stableAttributeSelector) {
+            return stableAttributeSelector;
         }
 
         for (const selector of [
@@ -581,23 +833,14 @@ Alpine.data('tourPicker', () => ({
             }
         }
 
-        // 5. Stable data attributes
-        const skipDataAttrs = ['data-livewire', 'data-id', 'wire:', 'x-'];
-        for (const attr of el.attributes) {
-            if (attr.name.startsWith('data-') && !skipDataAttrs.some(s => attr.name.includes(s)) && attr.value.length < 80) {
-                const sel = `[${attr.name}="${CSS.escape(attr.value)}"]`;
-                if (isUnique(sel)) return sel;
-            }
-        }
-
-        // 6. Tag + stable classes
+        // 5. Tag + stable classes
         const elPart = this.buildElementPart(el);
         const elPartNth = elPart + this.nthChild(el);
 
         if (isUnique(elPart)) return elPart;
         if (isUnique(elPartNth)) return elPartNth;
 
-        // 7. Anchor on nearest unique ancestor
+        // 6. Anchor on nearest unique ancestor
         const anchors = [
             () => {
                 const a = el.parentElement?.closest('a[href]');
@@ -628,7 +871,7 @@ Alpine.data('tourPicker', () => ({
             }
         }
 
-        // 8. Walk up ancestors
+        // 7. Walk up ancestors
         const parts = [elPartNth];
         let current = el.parentElement;
         for (let depth = 0; depth < 5 && current && current !== document.body; depth++) {
