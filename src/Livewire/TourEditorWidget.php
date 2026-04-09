@@ -18,11 +18,17 @@ class TourEditorWidget extends FilamentTourWidget
     {
         $this->tours = [];
         $this->highlights = [];
+        $shouldAutoStartTours = FilamentTourPlugin::resolveAutoStartTours();
 
-        $this->loadTraitTours();
-        $this->loadDatabaseTours();
+        if ($shouldAutoStartTours) {
+            $this->loadTraitTours();
+            $this->loadDatabaseTours();
+        } else {
+            $this->loadHighlights();
+        }
 
         $this->dispatch('filament-tour::loaded-elements',
+            auto_start_tours: $shouldAutoStartTours,
             only_visible_once: FilamentTourPlugin::get()->getHistoryType() == 'local_storage'
                 && (is_bool(FilamentTourPlugin::get()->isOnlyVisibleOnce())
                     ? FilamentTourPlugin::get()->isOnlyVisibleOnce()
@@ -41,6 +47,7 @@ class TourEditorWidget extends FilamentTourWidget
     public function preview(array $tour): void
     {
         $this->dispatch('filament-tour::loaded-elements',
+            auto_start_tours: false,
             only_visible_once: false,
             tours: [$tour],
             highlights: [],
@@ -73,6 +80,33 @@ class TourEditorWidget extends FilamentTourWidget
             if (in_array(HasTour::class, $traits)) {
                 $this->tours = array_merge($this->tours, (new $class)->constructTours($class));
             }
+
+            if (in_array(HasHighlight::class, $traits)) {
+                $this->highlights = array_merge($this->highlights, (new $class)->constructHighlights($class));
+            }
+        }
+    }
+
+    private function loadHighlights(): void
+    {
+        $filamentClasses = [];
+
+        foreach (array_merge(Filament::getResources(), Filament::getPages()) as $class) {
+            $instance = new $class;
+
+            if ($instance instanceof \Filament\Resources\Resource) {
+                collect($instance->getPages())->map(fn ($item) => $item->getPage())
+                    ->flatten()
+                    ->each(function ($item) use (&$filamentClasses) {
+                        $filamentClasses[] = $item;
+                    });
+            } else {
+                $filamentClasses[] = $class;
+            }
+        }
+
+        foreach ($filamentClasses as $class) {
+            $traits = class_uses($class);
 
             if (in_array(HasHighlight::class, $traits)) {
                 $this->highlights = array_merge($this->highlights, (new $class)->constructHighlights($class));

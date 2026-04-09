@@ -3,7 +3,6 @@
 namespace Padmission\FilamentTourEditor\Actions;
 
 use Filament\Actions\Action;
-use Illuminate\Support\Str;
 use Livewire\Component;
 use Padmission\FilamentTourEditor\Models\Tour;
 
@@ -30,9 +29,7 @@ class LaunchTourAction extends Action
                     return;
                 }
 
-                $tourConfigId = $tour->json_config['id'] ?? Str::slug($tour->name);
-
-                $livewire->dispatch('filament-tour::open-tour', id: $tourConfigId);
+                $livewire->dispatch('filament-tour-editor::preview-tour', tour: $tour->toFilamentTourArray());
             });
     }
 

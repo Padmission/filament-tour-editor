@@ -22,6 +22,7 @@ class FilamentTourEditorPlugin implements Plugin
     private bool|Closure $enableBuilder = true;
     private bool|Closure $enableCssSelector = false;
     private bool|Closure $enableResource = true;
+    private bool|Closure $autoStartTours = true;
     private string|Closure|null $navigationGroup = 'System';
     private string|Closure|null $navigationLabel = 'Tours';
 
@@ -52,6 +53,8 @@ class FilamentTourEditorPlugin implements Plugin
             if ($this->evaluate($this->enableCssSelector)) {
                 $tourPlugin->enableCssSelector();
             }
+
+            $tourPlugin->autoStartTours($this->autoStartTours);
 
             $panel->plugin($tourPlugin);
         }
@@ -109,6 +112,19 @@ class FilamentTourEditorPlugin implements Plugin
         $this->enableResource = $enable;
 
         return $this;
+    }
+
+    public function autoStartTours(bool|Closure $condition = true): static
+    {
+        $this->autoStartTours = $condition;
+        FilamentTourPlugin::make()->autoStartTours($condition);
+
+        return $this;
+    }
+
+    public function shouldAutoStartTours(): bool
+    {
+        return (bool) $this->evaluate($this->autoStartTours);
     }
 
     public function navigationGroup(string|Closure|null $group): static
