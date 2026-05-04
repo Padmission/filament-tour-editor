@@ -16,7 +16,7 @@ class TourEditorWidget extends FilamentTourWidget
     #[On('filament-tour::load-elements')]
     public function load(): void
     {
-        if (! auth()->check()) {
+        if (! Filament::auth()->check()) {
             return;
         }
 
