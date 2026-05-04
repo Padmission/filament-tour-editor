@@ -5,6 +5,7 @@ namespace Padmission\FilamentTourEditor;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Contracts\Plugin;
+use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Support\Concerns\EvaluatesClosures;
 use Filament\View\PanelsRenderHook;
@@ -63,20 +64,23 @@ class FilamentTourEditorPlugin implements Plugin
         if ($this->evaluate($this->enableBuilder)) {
             $panel->renderHook(
                 PanelsRenderHook::BODY_END,
-                fn (): string => Blade::render('<livewire:filament-tour-builder />'),
+                fn (): string => Filament::auth()->check()
+                    ? Blade::render('<livewire:filament-tour-builder />')
+                    : '',
             );
 
             $panel->userMenuItems([
                 Action::make('launchTourBuilder')
                     ->label('Build Tour')
                     ->icon('heroicon-o-academic-cap')
-                    ->visible(fn (): bool => Gate::allows('create', Tour::class))
+                    ->authorize(fn (): bool => Filament::auth()->check() && Gate::allows('create', Tour::class))
                     ->action(function (Component $livewire): void {
                         $livewire->dispatch('launch-tour-builder');
                     }),
                 Action::make('requestTourReset')
                     ->label('Reset Tours')
                     ->icon('heroicon-o-arrow-path')
+                    ->authorize(fn (): bool => Filament::auth()->check())
                     ->action(function (Component $livewire): void {
                         $livewire->dispatch('request-tour-reset');
                     }),

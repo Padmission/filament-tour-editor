@@ -5,6 +5,7 @@ namespace Padmission\FilamentTourEditor\Livewire;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
+use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Component as SchemaComponent;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
@@ -261,6 +262,10 @@ class TourBuilder extends Component implements HasActions, HasSchemas
 
     public function canAccess(): bool
     {
+        if (! Filament::auth()->check()) {
+            return false;
+        }
+
         return Gate::allows('create', Tour::class);
     }
 
