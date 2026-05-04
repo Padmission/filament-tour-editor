@@ -16,6 +16,10 @@ class TourEditorWidget extends FilamentTourWidget
     #[On('filament-tour::load-elements')]
     public function load(): void
     {
+        if (! auth()->check()) {
+            return;
+        }
+
         $this->tours = [];
         $this->highlights = [];
         $shouldAutoStartTours = FilamentTourPlugin::resolveAutoStartTours();

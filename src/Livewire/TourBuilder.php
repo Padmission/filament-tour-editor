@@ -261,6 +261,10 @@ class TourBuilder extends Component implements HasActions, HasSchemas
 
     public function canAccess(): bool
     {
+        if (! auth()->check()) {
+            return false;
+        }
+
         return Gate::allows('create', Tour::class);
     }
 
